@@ -263,7 +263,10 @@ localStorage.setItem(
 "gastos",
 JSON.stringify(gastos)
 );
-
+  
+console.log("JSON ENVIADO:");
+console.log(JSON.stringify(gasto));
+  
 fetch(FLOW_URL,{
   method:"POST",
   mode:"no-cors",
