@@ -2,51 +2,328 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Gastos</title>
+
+<style>
+:root{
+--bg:#000;
+--card:#1c1c1e;
+--txt:#fff;
+--muted:#8e8e93;
+--primary:#0a84ff;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+background:var(--bg);
+color:var(--txt);
+max-width:520px;
+margin:auto;
+padding:20px 16px 90px;
+}
+
+.view{display:none}
+.view.active{display:block}
+
+.card{
+background:var(--card);
+padding:16px;
+border-radius:18px;
+margin-bottom:12px;
+}
+
+#amount{
+font-size:56px;
+font-weight:700;
+text-align:center;
+border:none;
+background:none;
+color:white;
+width:100%;
+outline:none;
+}
+
+input,select{
+width:100%;
+padding:12px;
+border-radius:12px;
+border:none;
+margin-top:8px;
+background:#2c2c2e;
+color:white;
+}
+
+button{
+border:none;
+border-radius:16px;
+padding:16px;
+font-size:18px;
+width:100%;
+margin-top:8px;
+}
+
+.primary{
+background:var(--primary);
+color:white;
+}
+
+.chips{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+margin-bottom:12px;
+}
+
+.chip{
+background:#2c2c2e;
+padding:10px 15px;
+border-radius:20px;
+cursor:pointer;
+}
+
+.chip.active{
+background:var(--primary);
+}
+
+nav{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#111;
+display:flex;
+justify-content:space-around;
+padding:10px;
+}
+
+nav button{
+background:none;
+color:white;
+width:auto;
+margin:0;
+}
+
+.nav-active{
+color:#0a84ff;
+}
+
+.row{
+display:flex;
+justify-content:space-between;
+border-bottom:1px solid #333;
+padding:10px 0;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Registrar gasto</h1>
+<div id="captura" class="view active">
 
-<input id="monto" type="number" placeholder="Monto"><br><br>
+<div class="card">
+<input id="amount" placeholder="$0">
+</div>
 
-<input id="descripcion" placeholder="Descripción"><br><br>
+<div class="chips" id="chips"></div>
 
-<button onclick="guardar()">Guardar</button>
+<div class="card">
+<input id="desc" placeholder="Descripción">
+
+<select id="pay">
+<option>Efectivo</option>
+<option>Tarjeta de crédito</option>
+<option>Tarjeta de débito</option>
+<option>Transferencia</option>
+</select>
+</div>
+
+<button class="primary" onclick="guardar()">
+Guardar
+</button>
+
+</div>
+
+<div id="panel" class="view">
+
+<h2>Panel</h2>
+
+<div class="card">
+<div>Total gastos:</div>
+<h1 id="total">$0</h1>
+</div>
+
+<div class="card">
+<div>Total registros:</div>
+<h1 id="count">0</h1>
+</div>
+
+</div>
+
+<div id="historial" class="view">
+
+<h2>Historial</h2>
+
+<div class="card" id="list"></div>
+
+</div>
+
+<div id="ajustes" class="view">
+
+<h2>Ajustes</h2>
+
+<div class="card">
+<p>Aplicación conectada a Power Automate.</p>
+</div>
+
+</div>
+
+<nav>
+
+<button onclick="show('captura',this)" class="nav-active">
+Captura
+</button>
+
+<button onclick="show('panel',this)">
+Panel
+</button>
+
+<button onclick="show('historial',this)">
+Historial
+</button>
+
+<button onclick="show('ajustes',this)">
+Ajustes
+</button>
+
+</nav>
 
 <script>
 
-const FLOW_URL = "https://defaulta37c2367cf18441f93e585d7db0d49.3d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/4578ee96473a4cdd861d7938b26aa92a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=J41BePtxZKNpos8CfMsNKUpwiWcJnKZf1s1qVY4ASlk";
+const FLOW_URL="https://defaulta37c2367cf18441f93e585d7db0d49.3d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/4578ee96473a4cdd861d7938b26aa92a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=J41BePtxZKNpos8CfMsNKUpwiWcJnKZf1s1qVY4ASlk";
 
-async function guardar(){
+const categorias=[
+"Comida",
+"Transporte",
+"Compras",
+"Entretenimiento",
+"Salud",
+"Servicios"
+];
 
-const ahora = new Date();
+let categoria="Comida";
 
-const gasto = {
-op:"upsert",
-id:Date.now().toString(),
-fecha:ahora.toISOString().split("T")[0],
-hora:ahora.toLocaleTimeString(),
-monto:Number(document.getElementById("monto").value),
-moneda:"MXN",
-categoria:"General",
-descripcion:document.getElementById("descripcion").value,
-metodo:"Web",
-mes:ahora.getMonth()+1,
-anio:ahora.getFullYear()
+let gastos=JSON.parse(
+localStorage.getItem("gastos")||"[]"
+);
+
+renderCategorias();
+
+function renderCategorias(){
+
+document.getElementById("chips").innerHTML=
+categorias.map(c=>`
+<div
+class="chip ${c===categoria?'active':''}"
+onclick="selCategoria('${c}')">
+${c}
+</div>
+`).join('');
+
+}
+
+function selCategoria(c){
+categoria=c;
+renderCategorias();
+}
+
+function guardar(){
+
+const monto=parseFloat(
+document.getElementById("amount").value
+);
+
+if(!monto)return;
+
+const gasto={
+id:Date.now(),
+monto:monto,
+descripcion:
+document.getElementById("desc").value,
+categoria:categoria,
+fecha:new Date().toISOString()
 };
 
-await fetch(FLOW_URL,{
+gastos.push(gasto);
+
+localStorage.setItem(
+"gastos",
+JSON.stringify(gastos)
+);
+
+fetch(FLOW_URL,{
 method:"POST",
+mode:"no-cors",
 headers:{
 "Content-Type":"application/json"
 },
 body:JSON.stringify(gasto)
-});
+}).catch(()=>{});
 
+document.getElementById("amount").value="";
+document.getElementById("desc").value="";
+
+actualizar();
 alert("Guardado");
 }
+
+function actualizar(){
+
+const total=
+gastos.reduce((a,b)=>a+b.monto,0);
+
+document.getElementById("total")
+.textContent="$"+total;
+
+document.getElementById("count")
+.textContent=gastos.length;
+
+document.getElementById("list")
+.innerHTML=
+gastos.slice().reverse().map(g=>`
+<div class="row">
+<div>
+<b>${g.categoria}</b><br>
+${g.descripcion||''}
+</div>
+<div>$${g.monto}</div>
+</div>
+`).join('');
+}
+
+function show(id,b){
+
+document
+.querySelectorAll(".view")
+.forEach(v=>v.classList.remove("active"));
+
+document
+.getElementById(id)
+.classList.add("active");
+
+document
+.querySelectorAll("nav button")
+.forEach(v=>v.classList.remove("nav-active"));
+
+b.classList.add("nav-active");
+
+actualizar();
+}
+
+actualizar();
 
 </script>
 
