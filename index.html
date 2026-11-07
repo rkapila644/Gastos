@@ -240,7 +240,61 @@ categoria=c;
 renderCategorias();
 }
 
-function guardar(){
+async function guardar() {
+
+  const monto = parseFloat(
+    document.getElementById("amount").value
+  );
+
+  if (!monto) return;
+
+  const ahora = new Date();
+
+  const gasto = {
+    op: "upsert",
+    id: String(Date.now()),
+    fecha: ahora.toISOString().slice(0,10),
+    hora: ahora.toTimeString().slice(0,8),
+    monto: monto,
+    moneda: "MXN",
+    categoria: categoria,
+    descripcion:
+      document.getElementById("desc").value || "",
+    metodo: "Web",
+    mes: ahora.getMonth() + 1,
+    anio: ahora.getFullYear()
+  };
+
+  gastos.push(gasto);
+
+  localStorage.setItem(
+    "gastos",
+    JSON.stringify(gastos)
+  );
+
+  try {
+
+    await fetch(FLOW_URL,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify(gasto)
+    });
+
+    console.log("Enviado a Power Automate");
+
+  } catch(err){
+
+    console.error(err);
+
+  }
+
+  document.getElementById("amount").value="";
+  document.getElementById("desc").value="";
+
+  actualizar();
+}
 
 const monto=parseFloat(
 document.getElementById("amount").value
@@ -264,14 +318,20 @@ localStorage.setItem(
 JSON.stringify(gastos)
 );
 
-fetch(FLOW_URL,{
-method:"POST",
-mode:"no-cors",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify(gasto)
-}).catch(()=>{});
+try{
+  const respuesta = await fetch(FLOW_URL,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(gasto)
+  });
+
+  console.log("STATUS:", respuesta.status);
+
+}catch(error){
+  console.error("ERROR:", error);
+}
 
 document.getElementById("amount").value="";
 document.getElementById("desc").value="";
