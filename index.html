@@ -248,13 +248,20 @@ document.getElementById("amount").value
 
 if(!monto)return;
 
-const gasto={
-id:Date.now(),
-monto:monto,
-descripcion:
-document.getElementById("desc").value,
-categoria:categoria,
-fecha:new Date().toISOString()
+const ahora = new Date();
+
+const gasto = {
+  op: "upsert",
+  id: String(Date.now()),
+  fecha: ahora.toISOString().slice(0,10),
+  hora: ahora.toLocaleTimeString('es-MX'),
+  monto: monto,
+  moneda: "MXN",
+  categoria: categoria,
+  descripcion: document.getElementById("desc").value || "",
+  metodo: "Web",
+  mes: ahora.getMonth() + 1,
+  anio: ahora.getFullYear()
 };
 
 gastos.push(gasto);
