@@ -1,13 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<title>Mi App Gastos</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gastos</title>
 </head>
 <body>
 
-<h1>Mi App de Gastos</h1>
+<h1>Registrar gasto</h1>
 
-<p>Si ves esta página, GitHub Pages funciona.</p>
+<input id="monto" type="number" placeholder="Monto"><br><br>
+
+<input id="descripcion" placeholder="Descripción"><br><br>
+
+<button onclick="guardar()">Guardar</button>
+
+<script>
+
+const FLOW_URL = "https://defaulta37c2367cf18441f93e585d7db0d49.3d.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/4578ee96473a4cdd861d7938b26aa92a/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=J41BePtxZKNpos8CfMsNKUpwiWcJnKZf1s1qVY4ASlk";
+
+async function guardar(){
+
+const ahora = new Date();
+
+const gasto = {
+op:"upsert",
+id:Date.now().toString(),
+fecha:ahora.toISOString().split("T")[0],
+hora:ahora.toLocaleTimeString(),
+monto:Number(document.getElementById("monto").value),
+moneda:"MXN",
+categoria:"General",
+descripcion:document.getElementById("descripcion").value,
+metodo:"Web",
+mes:ahora.getMonth()+1,
+anio:ahora.getFullYear()
+};
+
+await fetch(FLOW_URL,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(gasto)
+});
+
+alert("Guardado");
+}
+
+</script>
 
 </body>
 </html>
